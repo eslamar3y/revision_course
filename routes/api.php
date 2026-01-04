@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\PostController;
+use App\Http\Controllers\Api\V1\PostController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -12,4 +12,7 @@ Route::get('/hello', function () {
     return ['hello' => 'Api is running'];
 });
 
-Route::apiResource('/posts', PostController::class);
+
+Route::prefix('v1')->group(function () {
+    Route::apiResource('/posts', PostController::class);
+});
