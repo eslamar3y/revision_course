@@ -8,6 +8,7 @@ use App\Http\Resources\PostResource;
 use App\Models\Post;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
@@ -19,11 +20,15 @@ class PostController extends Controller
         // $pass = bcrypt('12345678');
         // return $pass;
 
-        try {
-            return PostResource::collection(Post::with('auther')->get());
-        } catch (Exception $e) {
-            return $e->getMessage();
-        }
+        // try {
+        //     return PostResource::collection(Post::with('auther')->get());
+        // } catch (Exception $e) {
+        //     return $e->getMessage();
+        // }
+
+        $user = Request()->user();
+        $posts = $user->posts()->paginate();
+        return $posts;
     }
 
     /**
@@ -33,7 +38,7 @@ class PostController extends Controller
     {
         try {
             $data = $request->validated();
-            $data['auther_id'] = '1';
+            $data['auther_id'] = $request->user()->id;
             $post = Post::create($data);
             return response()->json(new PostResource($post), 201);
         } catch (Exception $e) {
@@ -44,15 +49,11 @@ class PostController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(post $post)
     {
-        try {
+        abort_if(Auth::id() != $post->auther_id, 403, 'Access Forbidden');
 
-            $post = Post::findOrFail($id);
-            return response()->json(new PostResource($post), 200);
-        } catch (exception $e) {
-            return $e->getMessage();
-        }
+        return new PostResource($post);
     }
 
     /**
@@ -61,9 +62,13 @@ class PostController extends Controller
     public function update(StorePostRequest $request, Post $post)
     {
         try {
+            abort_if(Auth::id() != $post->auther_id, 403, 'Access Forbidden');
 
-            $data = $request->validate([]);
+            $data = $request->validate([
+                'title' => 'required|string|min:2',
+                'body' => ['required', 'string', 'min:2'],
 
+            ]);
             $post->update($data);
             $post->save();
 
@@ -84,6 +89,7 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
+        abort_if(Auth::id() != $post->auther_id, 403, 'Access Forbidden');
         $post->delete();
         return response()->noContent();
     }
